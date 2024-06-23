@@ -1,0 +1,21 @@
+POST /nilaisemester HTTP/2
+Host: smk-cakra-nusantara.sekolahan.id
+Cookie: PHPSESSID=gc6l3ifn4kj5df7fsichhmpiud; _ga=GA1.2.886883306.1718425912; _gid=GA1.2.346045130.1718425912; _gat_UA-83998363-5=1; _ga_RK58RM9LJ2=GS1.2.1718425913.1.1.1718426514.0.0.0
+Content-Length: 37
+Cache-Control: max-age=0
+Sec-Ch-Ua: "Chromium";v="107", "Not=A?Brand";v="24"
+Sec-Ch-Ua-Mobile: ?0
+Sec-Ch-Ua-Platform: "Windows"
+Upgrade-Insecure-Requests: 1
+Origin: null
+Content-Type: application/x-www-form-urlencoded
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.5304.63 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.9
+
+submitkelas=simpan&idpembelajaran=393
