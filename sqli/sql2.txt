@@ -1,0 +1,22 @@
+POST /datasiswa HTTP/2
+Host: smk-cakra-nusantara.sekolahan.id
+Cookie: _ga_PMQHBDYVCC=GS1.1.1735505663.4.0.1735505663.0.0.0; _ga=GA1.2.1115696789.1721542255; PHPSESSID=dm816a1847forq84mkdbtshra3; _gid=GA1.2.290210302.1737280541; _gat_UA-83998363-5=1; cf_clearance=mvXFQsnOa0g4WrfzvVVJCSuYsLsY5HikK73NmAwN6gs-1737288924-1.2.1.1-5acq.rTsDrdzev4WuSvIP1RnZjsO7FesM_BCB8odt_YYYp44CcTJ44C7ypfKzawh1AxRsMigyw6v.b9H_nt6ShK48mwZN.1_cgl4DkwNC5HGCeYTHZ_hofUMqGFUVa2.EVh7Alnjy0YXPAPycwRyh.eXrevYD0MzrPzYSqJTQIB.CbvhjpwGm32UmVkO_KIEOOawzyG0jHSrXCex.r48QX_hMp5eeb3dE3GPQA6ZrSfNmTYGS3Z8CzQyLrHh1Q2dQKrzNpddxyXxr3rwTM2CHJxBVHbNaKND17r4f.fnK5Q; _ga_RK58RM9LJ2=GS1.2.1737288924.9.1.1737288929.0.0.0
+Content-Length: 45
+Cache-Control: max-age=0
+Sec-Ch-Ua: "Not/A)Brand";v="8", "Chromium";v="126"
+Sec-Ch-Ua-Mobile: ?0
+Sec-Ch-Ua-Platform: "Windows"
+Accept-Language: en-US
+Upgrade-Insecure-Requests: 1
+Origin: null
+Content-Type: application/x-www-form-urlencoded
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.57 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br
+Priority: u=0, i
+
+snamasiswa=asda&s_kip=1&skelas=48&s_jurusan=1
