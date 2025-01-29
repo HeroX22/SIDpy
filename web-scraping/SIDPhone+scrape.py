@@ -1,8 +1,13 @@
 import os
 import requests
+import pdfkit
 from datetime import datetime
 from bs4 import BeautifulSoup
 import base64
+
+#path
+WKHTMLTOPDF_PATH = r"D:\sementara\applications\wkhtmltopdf\bin\wkhtmltopdf.exe"
+config = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
 
 # Konfigurasi API
 API_BASE_URL = "https://demo.sekolahan.id/api"
@@ -99,6 +104,48 @@ def scrape_siswa(session, subdomain, idsiswa):
         print(f"Gagal mengakses halaman siswa, status code: {response.status_code}")
     return {}
 
+# Tambahkan fungsi ini setelah fungsi scrape_siswa
+def download_pdf(session, subdomain, idsiswa, output_path):
+    """Download HTML via session, lalu konversi ke PDF"""
+    pdf_url = f'https://{subdomain}.sekolahan.id/studentrecord/printdata/{idsiswa}'
+    response = session.get(pdf_url)
+    
+    if response.status_code == 200:
+        try:
+            # Perbaiki URL relatif dalam HTML
+            html_content = response.text.replace('src="/', f'src="https://{subdomain}.sekolahan.id/')
+            html_content = html_content.replace('href="/', f'href="https://{subdomain}.sekolahan.id/')
+            
+            # Simpan cookie session untuk wkhtmltopdf
+            cookies = session.cookies.get_dict()
+            cookies_str = "; ".join([f"{k}={v}" for k, v in cookies.items()])
+            
+            options = {
+                'quiet': '',
+                'print-media-type': '',
+                'encoding': 'UTF-8',
+                'cookie': [('cookie_name', cookies_str)],  # Kirim cookie
+                'custom-header': [
+                    ('User-Agent', 'Mozilla/5.0'),  # Samakan dengan header browser
+                ],
+                'enable-local-file-access': ''  # Izinkan akses file lokal
+            }
+            
+            # Konversi HTML string ke PDF
+            pdfkit.from_string(
+                html_content, 
+                output_path, 
+                options=options, 
+                configuration=config
+            )
+            return True
+        except Exception as e:
+            print(f"Gagal konversi PDF: {str(e)}")
+            return False
+    else:
+        print(f"Gagal akses halaman. Status code: {response.status_code}")
+    return False
+
 # Fungsi untuk mendapatkan nilai input dari form
 def get_input_value(soup, field):
     """Mengambil nilai dari input berdasarkan nama field."""
@@ -106,6 +153,7 @@ def get_input_value(soup, field):
     return input_tag['value'] if input_tag else None
 
 # Fungsi untuk menyimpan data siswa ke dalam file terpisah
+# Modifikasi fungsi simpan_data_siswa (tambahkan bagian untuk download PDF)
 def simpan_data_siswa(nama_sekolah, kelas, siswa_data, id_sekolah, session, subdomain):
     """Menyimpan data siswa dan profilnya ke dalam file terpisah berdasarkan nama siswa dan kelas."""
     output_folder = os.path.join(os.getcwd(), "Data Sekolah", nama_sekolah, "Data Siswa", kelas)
@@ -118,33 +166,40 @@ def simpan_data_siswa(nama_sekolah, kelas, siswa_data, id_sekolah, session, subd
         siswa_folder = os.path.join(output_folder, nama_siswa)
         os.makedirs(siswa_folder, exist_ok=True)
         
-        file_name = f"{nama_siswa}.txt"
-        output_file_path = os.path.join(siswa_folder, file_name)
-
-        with open(output_file_path, "w") as file:
+        # Simpan data txt
+        file_name_txt = f"{nama_siswa}.txt"
+        output_file_path_txt = os.path.join(siswa_folder, file_name_txt)
+        
+        with open(output_file_path_txt, "w") as file:
             file.write(f"=== Data Siswa: {nama_siswa} ===\n")
             file.write(f"ID: {siswa['idsiswa']}\n")
             
-            # Cek apakah ada data kelas dalam objek siswa
             if 'kelas' in siswa:
                 file.write(f"Kelas: {siswa['kelas']}\n")
             else:
                 file.write(f"Kelas: Data Tidak Tersedia\n")
             
             file.write("\n")
-
-            # Mengambil data profil siswa
+            
             tgllahir = profil.get("tgllahir", "")
             password = datetime.strptime(tgllahir, "%Y-%m-%d").strftime("%y%m%d") if tgllahir and tgllahir != '0000-00-00' else "default_password"
             file.write(f"Password: {password}\n")
             
-            # Scraping data tambahan dari halaman edit
             scraped_data = scrape_siswa(session, subdomain, siswa['idsiswa'])
             for key, value in {**profil, **scraped_data}.items():
                 file.write(f"{key}: {value}\n")
             file.write("\n")
         
-        print(f"Data untuk {nama_siswa} berhasil disimpan dalam {file_name}")
+        # Download PDF
+        file_name_pdf = f"{nama_siswa}.pdf"
+        output_file_path_pdf = os.path.join(siswa_folder, file_name_pdf)
+        
+        if download_pdf(session, subdomain, siswa['idsiswa'], output_file_path_pdf):
+            print(f"PDF untuk {nama_siswa} berhasil didownload")
+        else:
+            print(f"Gagal download PDF untuk {nama_siswa}")
+        
+        print(f"Data untuk {nama_siswa} berhasil disimpan dalam {file_name_txt}")
 
 # Main Program
 def main():
