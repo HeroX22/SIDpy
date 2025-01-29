@@ -1,0 +1,56 @@
+MA Insan Mandiri
+Madrasah Aliyah
+Madrasah Tsanawiyah
+MAK Unggulan Informatika
+MAN KOTA CIMAHI
+SD Sekolahan
+SDIT Nurul Hikmah 3
+SMA Darul Falah
+SMA KARTIKA XIX-3
+SMA Negeri 22 Bandung
+SMA NEGERI 25 BANDUNG
+SMA Negeri 5 Bandung
+SMA PASUNDAN 1 BANDUNG
+SMA Pasundan 3 Bandung
+SMA PASUNDAN 5 BANDUNG
+SMAN 13 BANDUNG
+SMAN 15 Bandung
+SMAN 19 BANDUNG
+SMAN 21 Bandung
+SMAN 4 BANDUNG
+SMAS Pasundan 4 Bandung
+SMA Negeri 5 Cimahi
+SMA PASUNDAN 1 CIMAHI
+SMA PASUNDAN 3 CIMAHI
+SMAN 1 CARENANG
+SMAN 3 CIMAHI
+SMAN 6 Cimahi
+SMK 1 LPPM CIASEM
+SMK CAKRA NUSANTARA
+SMK CATUR GLOBAL
+SMK Guna Cipta
+SMK Itikurih Hibarna Ciparay
+Demo
+Demo 2
+SMA Sekolahan.id
+SMAN 1 Pemalang
+SMK 2 WISATA PERINTIS DEPOK
+SMK Bina ESSA
+SMK NU MAARIF KUDUS
+SMK ANGKASA 1 MARGAHAYU
+SMK IT Al Junaediyah
+SMK Muhammadiyah 6 Rogojampi
+SMK Negeri 1 Maja
+SMK PASUNDAN 1 BANJARAN
+SMK ISLAM ARRIDHO
+SMAN 1 PAMARAYAN
+SMK BINA WARGA BANDUNG
+SMK NEGERI 2 LUWUK
+SMK Pariwisata Metland School
+SMK Pertiwi Kuningan
+SMK Wiraswasta
+SMK YPT PURWOREJO
+SMK Muhammadiyah 1 Cepu
+SMK Muhammadiyah 2 Cibiru Kota Bandung
+SMK MUHAMMADIYAH 2 MUNTILAN
+Yayasan Al MultaZam
