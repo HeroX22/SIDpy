@@ -1,12 +1,12 @@
 1. profil sekolah (txt)
-https://smk-cakra-nusantara.sekolahan.id/profilsekolah (done) (not tested)
+https://smk-cakra-nusantara.sekolahan.id/profilsekolah (done) (txt)
 
 2. data siswa (cetak dan edit) 
 https://smk-cakra-nusantara.sekolahan.id/datasiswa/edit/{id-siswa} (done) (txt)
 https://smk-cakra-nusantara.sekolahan.id/studentrecord/printdata/{id-siswa} (Done) (pdf)
 
 3. data alumni
-https://smk-cakra-nusantara.sekolahan.id/dataalumni/cetakalumni/ (xls)
+https://smk-cakra-nusantara.sekolahan.id/dataalumni/cetakalumni/ (xlsx) (done)
 
 4. data guru (cetak dan edit)
 https://smk-cakra-nusantara.sekolahan.id/dataguru/cetakguru/ (xls)

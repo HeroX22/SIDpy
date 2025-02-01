@@ -4,9 +4,12 @@ import pdfkit
 from datetime import datetime
 from bs4 import BeautifulSoup
 import base64
+import pandas as pd
+from io import StringIO
 
 #path
-WKHTMLTOPDF_PATH = r"D:\Elam\Sementara\sid\wkhtmltopdf\bin\wkhtmltopdf.exe"
+#WKHTMLTOPDF_PATH = r"D:\Elam\Sementara\sid\wkhtmltopdf\bin\wkhtmltopdf.exe"
+WKHTMLTOPDF_PATH = r"D:\sementara\applications\wkhtmltopdf\bin\wkhtmltopdf.exe"
 config = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
 
 # Konfigurasi API
@@ -37,14 +40,18 @@ def cari_sekolah():
 
         if sekolah_list:
             for index, sekolah in enumerate(sekolah_list, start=1):
-                print(f"{index}. {sekolah['nama']}")
+                # TAMPILKAN NAMA SEKOLAH TANPA KOMA (jika ada)
+                cleaned_nama = sekolah['nama'].split(',')[0].strip()
+                print(f"{index}. {cleaned_nama}")
             try:
                 pilihan = int(input("Pilih sekolah (nomor): "))
                 id_sekolah = sekolah_list[pilihan - 1]["id"]
                 nama_sekolah = sekolah_list[pilihan - 1]["nama"]
+                original_nama = sekolah_list[pilihan - 1]["nama"]
+                sanitized_nama = original_nama.replace(',', '').strip()  # Hapus koma
                 identifier = sekolah_list[pilihan - 1]["identifier"]
                 subdomain = base64.b64decode(identifier).decode('utf-8')  # Decode base64 untuk mendapatkan subdomain
-                return id_sekolah, nama_sekolah, subdomain
+                return id_sekolah, sanitized_nama, subdomain
             except (ValueError, IndexError):
                 print("Pilihan tidak valid. Coba lagi.")
         else:
@@ -153,7 +160,7 @@ def get_input_value(soup, field):
     return input_tag['value'] if input_tag else None
 
 # TAMBAHKAN FUNGSI INI SETELAH FUNGSI get_input_value
-def scrape_profil_sekolah(session, subdomain, nama_sekolah):
+def scrape_profil_sekolah(session, subdomain, sanitized_nama_sekolah):
     """Scraping dan menyimpan profil sekolah ke file txt."""
     PROFIL_SEKOLAH_URL = f'https://{subdomain}.sekolahan.id/profilsekolah'  # Ganti URL sesuai kebutuhan
     response = session.get(PROFIL_SEKOLAH_URL)
@@ -164,7 +171,8 @@ def scrape_profil_sekolah(session, subdomain, nama_sekolah):
 
     soup = BeautifulSoup(response.text, 'html.parser')
     # Profil Sekolah
-    nama_sekolah = get_input_value(soup, 'pnamasekolah')
+    # nama_sekolah = get_input_value(soup, 'pnamasekolah')
+    original_nama_sekolah = get_input_value(soup, 'pnamasekolah')
     nss = get_input_value(soup, 'nsssekolah')
     npsn = get_input_value(soup, 'npsnsekolah')
     alamat = get_input_value(soup, 'alamat_sekolah')
@@ -181,7 +189,13 @@ def scrape_profil_sekolah(session, subdomain, nama_sekolah):
     nomor_fax = get_input_value(soup, 'nomor_faxsekolah')
     email = get_input_value(soup, 'emailsekolah')
     website = get_input_value(soup, 'websitesekolah')
-    status_kepemilikan = soup.find('select', {'name': 'status_pemilik'}).find('option', selected=True).text if soup.find('select', {'name': 'status_pemilik'}) else 'Tidak ditemukan'
+    # HANDLE STATUS KEPEMILIKAN DENGAN CHECK BERLAPIS
+    # status_kepemilikan = soup.find('select', {'name': 'status_pemilik'}).find('option', selected=True).text if soup.find('select', {'name': 'status_pemilik'}) else 'Tidak ditemukan'
+    status_kepemilikan = 'Tidak ditemukan'
+    select_status = soup.find('select', {'name': 'status_pemilik'})
+    if select_status:
+        selected_option = select_status.find('option', selected=True)
+        status_kepemilikan = selected_option.text.strip() if selected_option else ''
 
     # Kelengkapan Sekolah
     sk_pendirian = get_input_value(soup, 'sk_pendirian_sekolah')
@@ -202,14 +216,14 @@ def scrape_profil_sekolah(session, subdomain, nama_sekolah):
     tgl_sk_pendirian_yayasan = get_input_value(soup, 'tgl_sk_pendirian_yayasan')
 
         # ========== SIMPAN KE FILE ==========
-    output_folder = os.path.join("Data Sekolah", nama_sekolah)
+    output_folder = os.path.join("Data Sekolah", sanitized_nama_sekolah)
     os.makedirs(output_folder, exist_ok=True)
     
     output_path = os.path.join(output_folder, "informasi sekolah.txt")
     
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write("=== PROFIL SEKOLAH ===\n")
-        f.write(f"Nama Sekolah     : {nama_sekolah}\n")
+        f.write(f"Nama Sekolah     : {original_nama_sekolah}\n")
         f.write(f"NSS              : {nss}\n")
         f.write(f"NPSN             : {npsn}\n")
         f.write(f"Alamat           : {alamat}\n")
@@ -249,6 +263,42 @@ def scrape_profil_sekolah(session, subdomain, nama_sekolah):
         f.write(f"Tanggal Akte     : {tgl_sk_pendirian_yayasan}\n")
 
     print(f"\nProfil sekolah berhasil disimpan di: {output_path}")
+
+# Download data alumni
+def download_alumni(session, subdomain, nama_sekolah):
+    alumni_url = f'https://{subdomain}.sekolahan.id/dataalumni/cetakalumni/'
+    
+    try:
+        response = session.get(alumni_url)
+        
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            table = soup.find('table')
+            
+            if not table:
+                print("Tabel alumni tidak ditemukan di halaman.")
+                return False
+            
+            # PERBAIKAN 1: Gunakan StringIO untuk handle HTML
+            html_content = str(table)
+            df = pd.read_html(StringIO(html_content))[0]  # ← Pakai StringIO
+            
+            # PERBAIKAN 2: Simpan sebagai .xlsx (format modern)
+            output_folder = os.path.join("Data Sekolah", nama_sekolah, "Data Siswa")
+            os.makedirs(output_folder, exist_ok=True)
+            output_path = os.path.join(output_folder, "alumni.xlsx")  # Ganti ke .xlsx
+            
+            df.to_excel(output_path, index=False, engine='openpyxl')  # ← Pakai engine openpyxl
+            print(f"\nData alumni berhasil disimpan: {output_path}")
+            return True
+            
+        else:
+            print(f"Gagal download alumni. Status code: {response.status_code}")
+            return False
+            
+    except Exception as e:
+        print(f"Error saat download alumni: {str(e)}")
+        return False
 
 # Fungsi untuk menyimpan data siswa ke dalam file terpisah
 # Modifikasi fungsi simpan_data_siswa (tambahkan bagian untuk download PDF)
@@ -302,11 +352,11 @@ def simpan_data_siswa(nama_sekolah, kelas, siswa_data, id_sekolah, session, subd
 # Main Program
 def main():
     id_sekolah, nama_sekolah, subdomain = cari_sekolah()
-    kelas_list = get_kelas(id_sekolah)
+    # kelas_list = get_kelas(id_sekolah)
     
-    if not kelas_list:
-        print("Gagal mendapatkan data kelas.")
-        return
+    # if not kelas_list:
+    #     print("Gagal mendapatkan data kelas.")
+    #     return
 
     # Login ke subdomain
     session = login(subdomain)
@@ -315,15 +365,17 @@ def main():
 
     scrape_profil_sekolah(session, subdomain, nama_sekolah)
 
-    for kelas in kelas_list:
-        print(f"Mengambil data siswa untuk kelas: {kelas['namakelas']}")
-        siswa_list = get_siswa(id_sekolah, kelas["kelasid"])
+    download_alumni(session, subdomain, nama_sekolah)
+
+    # for kelas in kelas_list:
+    #     print(f"Mengambil data siswa untuk kelas: {kelas['namakelas']}")
+    #     siswa_list = get_siswa(id_sekolah, kelas["kelasid"])
         
-        if siswa_list:
-            simpan_data_siswa(nama_sekolah, kelas['namakelas'], siswa_list, id_sekolah, session, subdomain)
-            print(f"Data siswa kelas {kelas['namakelas']} berhasil disimpan.")
-        else:
-            print(f"Tidak ada data siswa di kelas {kelas['namakelas']}")
+    #     if siswa_list:
+    #         simpan_data_siswa(nama_sekolah, kelas['namakelas'], siswa_list, id_sekolah, session, subdomain)
+    #         print(f"Data siswa kelas {kelas['namakelas']} berhasil disimpan.")
+    #     else:
+    #         print(f"Tidak ada data siswa di kelas {kelas['namakelas']}")
 
 if __name__ == "__main__":
     main()
