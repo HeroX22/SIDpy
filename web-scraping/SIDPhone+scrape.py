@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 import base64
 
 #path
-WKHTMLTOPDF_PATH = r"D:\sementara\applications\wkhtmltopdf\bin\wkhtmltopdf.exe"
+WKHTMLTOPDF_PATH = r"D:\Elam\Sementara\sid\wkhtmltopdf\bin\wkhtmltopdf.exe"
 config = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
 
 # Konfigurasi API
@@ -152,6 +152,104 @@ def get_input_value(soup, field):
     input_tag = soup.find('input', {'name': field})
     return input_tag['value'] if input_tag else None
 
+# TAMBAHKAN FUNGSI INI SETELAH FUNGSI get_input_value
+def scrape_profil_sekolah(session, subdomain, nama_sekolah):
+    """Scraping dan menyimpan profil sekolah ke file txt."""
+    PROFIL_SEKOLAH_URL = f'https://{subdomain}.sekolahan.id/profilsekolah'  # Ganti URL sesuai kebutuhan
+    response = session.get(PROFIL_SEKOLAH_URL)
+    
+    if response.status_code != 200:
+        print(f"Gagal mengakses profil sekolah. Status code: {response.status_code}")
+        return
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+    # Profil Sekolah
+    nama_sekolah = get_input_value(soup, 'pnamasekolah')
+    nss = get_input_value(soup, 'nsssekolah')
+    npsn = get_input_value(soup, 'npsnsekolah')
+    alamat = get_input_value(soup, 'alamat_sekolah')
+    kode_pos = get_input_value(soup, 'kode_possekolah')
+    desa_kelurahan = get_input_value(soup, 'desa_kelurahansekolah')
+    kecamatan = get_input_value(soup, 'kecamatan_sekolah')
+    kabupaten_kota = get_input_value(soup, 'kabupatenkota_sekolah')
+    provinsi = get_input_value(soup, 'provinsi_sekolah')
+    latitude = get_input_value(soup, 'latitude')
+    longitude = get_input_value(soup, 'longitude')
+
+    # Informasi Sekolah
+    nomor_telepon = get_input_value(soup, 'nomor_teleponsekolah')
+    nomor_fax = get_input_value(soup, 'nomor_faxsekolah')
+    email = get_input_value(soup, 'emailsekolah')
+    website = get_input_value(soup, 'websitesekolah')
+    status_kepemilikan = soup.find('select', {'name': 'status_pemilik'}).find('option', selected=True).text if soup.find('select', {'name': 'status_pemilik'}) else 'Tidak ditemukan'
+
+    # Kelengkapan Sekolah
+    sk_pendirian = get_input_value(soup, 'sk_pendirian_sekolah')
+    tgl_sk_pendirian = get_input_value(soup, 'tgl_sk_pendirian_sekolah')
+    sk_izin_operasional = get_input_value(soup, 'sk_izin_operasional')
+    tgl_sk_izin_operasional = get_input_value(soup, 'tgl_sk_izin_operasional')
+    no_rekening = get_input_value(soup, 'no_rekeningsekolah')
+    nama_bank = get_input_value(soup, 'nama_banksekolah')
+    rekening_atas_nama = get_input_value(soup, 'rekening_atas_nama')
+
+    # Profile Yayasan
+    nama_yayasan = get_input_value(soup, 'namayayasan')
+    pimpinan_yayasan = get_input_value(soup, 'nama_pimpinan_yayasan')
+    alamat_yayasan = get_input_value(soup, 'alamat_yayasan')
+    kode_pos_yayasan = get_input_value(soup, 'kode_posyayasan')
+    desa_kelurahan_yayasan = get_input_value(soup, 'desa_kelurahanyayasan')
+    sk_pendirian_yayasan = get_input_value(soup, 'sk_pendirian_yayasan')
+    tgl_sk_pendirian_yayasan = get_input_value(soup, 'tgl_sk_pendirian_yayasan')
+
+        # ========== SIMPAN KE FILE ==========
+    output_folder = os.path.join("Data Sekolah", nama_sekolah)
+    os.makedirs(output_folder, exist_ok=True)
+    
+    output_path = os.path.join(output_folder, "informasi sekolah.txt")
+    
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write("=== PROFIL SEKOLAH ===\n")
+        f.write(f"Nama Sekolah     : {nama_sekolah}\n")
+        f.write(f"NSS              : {nss}\n")
+        f.write(f"NPSN             : {npsn}\n")
+        f.write(f"Alamat           : {alamat}\n")
+        f.write(f"Kode Pos         : {kode_pos}\n")
+        f.write(f"Desa/Kelurahan   : {desa_kelurahan}\n")
+        f.write(f"Kecamatan        : {kecamatan}\n")
+        f.write(f"Kabupaten/Kota   : {kabupaten_kota}\n")
+        f.write(f"Provinsi         : {provinsi}\n")
+        f.write(f"Latitude         : {latitude}\n")
+        f.write(f"Longitude        : {longitude}\n\n")
+        
+        f.write("=== INFORMASI KONTAK ===\n")
+        f.write(f"Telepon          : {nomor_telepon}\n")
+        f.write(f"Fax              : {nomor_fax}\n")
+        f.write(f"Email            : {email}\n")
+        f.write(f"Website          : {website}\n")
+        f.write(f"Status Kepemilikan: {status_kepemilikan}\n\n")
+        
+        f.write("=== LEGALITAS ===\n")
+        f.write(f"SK Pendirian     : {sk_pendirian}\n")
+        f.write(f"Tanggal SK       : {tgl_sk_pendirian}\n")
+        f.write(f"SK Izin Operasional: {sk_izin_operasional}\n")
+        f.write(f"Tanggal SK Izin  : {tgl_sk_izin_operasional}\n\n")
+        
+        f.write("=== REKENING SEKOLAH ===\n")
+        f.write(f"Nomor Rekening   : {no_rekening}\n")
+        f.write(f"Nama Bank        : {nama_bank}\n")
+        f.write(f"Atas Nama        : {rekening_atas_nama}\n\n")
+        
+        f.write("=== YAYASAN ===\n")
+        f.write(f"Nama Yayasan     : {nama_yayasan}\n")
+        f.write(f"Pimpinan         : {pimpinan_yayasan}\n")
+        f.write(f"Alamat Yayasan   : {alamat_yayasan}\n")
+        f.write(f"Kode Pos Yayasan : {kode_pos_yayasan}\n")
+        f.write(f"Desa/Kelurahan   : {desa_kelurahan_yayasan}\n")
+        f.write(f"Akte Pendirian   : {sk_pendirian_yayasan}\n")
+        f.write(f"Tanggal Akte     : {tgl_sk_pendirian_yayasan}\n")
+
+    print(f"\nProfil sekolah berhasil disimpan di: {output_path}")
+
 # Fungsi untuk menyimpan data siswa ke dalam file terpisah
 # Modifikasi fungsi simpan_data_siswa (tambahkan bagian untuk download PDF)
 def simpan_data_siswa(nama_sekolah, kelas, siswa_data, id_sekolah, session, subdomain):
@@ -213,7 +311,9 @@ def main():
     # Login ke subdomain
     session = login(subdomain)
     if session is None:
-        return
+        return    
+
+    scrape_profil_sekolah(session, subdomain, nama_sekolah)
 
     for kelas in kelas_list:
         print(f"Mengambil data siswa untuk kelas: {kelas['namakelas']}")
