@@ -413,6 +413,92 @@ def download_guru(session, subdomain, nama_sekolah):
         print(f"Error saat download guru: {str(e)}")
         return False
 
+def scrape_guru(session, subdomain, nama_sekolah):
+    """Scraping data guru dan download profil PDF."""
+    DATA_GURU_URL = f'https://{subdomain}.sekolahan.id/dataguru'
+
+    def scrape_page(url):
+        """Scrape data guru dari halaman tertentu."""
+        response = session.get(url)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            table = soup.find('table', class_='table table-striped table-hover')
+            if table:
+                rows = table.find('tbody').find_all('tr')
+                guru_data = []
+                for row in rows:
+                    cols = row.find_all('td')
+                    if len(cols) > 1:
+                        id_guru = cols[2].text.strip()
+                        nama_guru = cols[3].find('strong')
+                        nama_guru = nama_guru.text.strip() if nama_guru else cols[3].text.strip()
+                        guru_data.append((id_guru, nama_guru))
+                return guru_data
+        print(f"Gagal mengakses halaman: {url}, status code: {response.status_code}")
+        return []
+
+    def download_profil_guru(id_guru, nama_guru):
+        """Download profil guru sebagai PDF dengan mengonversi HTML ke PDF."""
+        # Buat URL lengkap untuk profil guru
+        profil_url = f'https://{subdomain}.sekolahan.id/dataguru/cetakprofil/{id_guru}'
+        
+        # Print URL lengkap yang sedang diakses
+        print(f"Mengakses URL untuk profil guru: {profil_url}")
+        
+        # Menggunakan session yang sudah login untuk ambil HTML
+        response = session.get(profil_url)
+
+        if response.status_code == 200:
+            # Print HTML yang diterima untuk memverifikasi
+            # print(f"HTML diterima untuk {nama_guru}:\n{response.text[:500]}...")  # Cukup tampilkan 500 karakter pertama
+
+            # Path penyimpanan
+            output_folder = os.path.join("Data Sekolah", nama_sekolah, "data guru")
+            os.makedirs(output_folder, exist_ok=True)
+            output_path = os.path.join(output_folder, f"{nama_guru}.pdf")
+
+            try:
+                # Mengonversi HTML ke PDF dengan beberapa parameter tambahan
+                options = {
+                    'no-images': '',  # Matikan gambar agar tidak dimuat
+                    'enable-local-file-access': '',  # Akses file lokal (misalnya resource CSS/JS)
+                    'javascript-delay': '2000',  # Memberi waktu lebih untuk memuat elemen dinamis
+                    'load-error-handling': 'ignore',  # Mengabaikan error yang muncul saat memuat resource
+                }
+
+                # Mengonversi HTML ke PDF dan menyimpannya dengan konfigurasi wkhtmltopdf
+                pdfkit.from_string(response.text, output_path, configuration=config, options=options)
+                print(f"Profil {nama_guru} berhasil disimpan sebagai PDF: {output_path}")
+                return True
+            except Exception as e:
+                print(f"Gagal mengonversi HTML ke PDF untuk {nama_guru}: {e}")
+                return False
+        else:
+            print(f"Gagal download profil {nama_guru}. Status code: {response.status_code}")
+            return False
+
+    # Ambil data guru dari semua halaman
+    first_page_response = session.get(DATA_GURU_URL)
+    if first_page_response.status_code == 200:
+        soup = BeautifulSoup(first_page_response.text, 'html.parser')
+        pagination = soup.find('ul', class_='pagination')
+        total_pages = max([int(a.text) for a in pagination.find_all('a') if a.text.isdigit()], default=1)
+
+        print(f"Total halaman: {total_pages}")
+
+        all_guru_data = []
+        for page in range(1, total_pages + 1):
+            page_url = f"{DATA_GURU_URL}/?halaman={page}"
+            print(f"Mengakses halaman: {page_url}")
+            all_guru_data.extend(scrape_page(page_url))
+
+        # Download profil guru
+        for id_guru, nama_guru in all_guru_data:
+            print(f"\nMendownload profil: {nama_guru} (ID: {id_guru})")
+            download_profil_guru(id_guru, nama_guru)
+    else:
+        print(f"Gagal mengakses halaman guru, status code: {first_page_response.status_code}")
+
 # Fungsi untuk menyimpan data siswa ke dalam file terpisah
 # Modifikasi fungsi simpan_data_siswa (tambahkan bagian untuk download PDF)
 def simpan_data_siswa(nama_sekolah, kelas, siswa_data, id_sekolah, session, subdomain):
@@ -481,6 +567,8 @@ def main():
     download_alumni(session, subdomain, nama_sekolah)
 
     download_guru(session, subdomain, nama_sekolah)
+
+    scrape_guru(session, subdomain, nama_sekolah)
 
     # for kelas in kelas_list:
     #     print(f"Mengambil data siswa untuk kelas: {kelas['namakelas']}")
