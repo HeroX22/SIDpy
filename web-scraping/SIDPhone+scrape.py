@@ -413,6 +413,69 @@ def download_guru(session, subdomain, nama_sekolah):
         print(f"Error saat download guru: {str(e)}")
         return False
 
+def download_tendik(session, subdomain, nama_sekolah):
+    """Mendownload data tendik dalam format XLSX"""
+    tendik_url = f'https://{subdomain}.sekolahan.id/datatendik/cetaktendik/'
+    
+    try:
+        response = session.get(tendik_url)
+        
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            table = soup.find('table')
+            
+            if not table:
+                print("Tabel tendik tidak ditemukan di halaman.")
+                return False
+            
+            # Konversi tabel HTML ke DataFrame
+            html_content = str(table)
+            df = pd.read_html(StringIO(html_content))[0]
+            
+            # Path penyimpanan
+            output_folder = os.path.join("Data Sekolah", nama_sekolah, "data tendik")
+            os.makedirs(output_folder, exist_ok=True)
+            output_path = os.path.join(output_folder, "data tendik.xlsx")
+            
+            # Simpan ke Excel dengan styling
+            with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Tendik')
+                
+                # Ambil worksheet
+                workbook = writer.book
+                worksheet = writer.sheets['Tendik']
+                
+                # Tentukan border
+                thin_border = Border(
+                    left=Side(style='thin'),
+                    right=Side(style='thin'),
+                    top=Side(style='thin'),
+                    bottom=Side(style='thin')
+                )
+                
+                # Terapkan border dan alignment
+                for row in worksheet.iter_rows():
+                    for cell in row:
+                        cell.border = thin_border
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
+                
+                # Auto adjust lebar kolom
+                for col in worksheet.columns:
+                    max_length = max(len(str(cell.value)) for cell in col)
+                    adjusted_width = (max_length + 2) * 1.2
+                    worksheet.column_dimensions[col[0].column_letter].width = adjusted_width
+            
+            print(f"\nData tendik berhasil disimpan: {output_path}")
+            return True
+            
+        else:
+            print(f"Gagal download data tendik. Status code: {response.status_code}")
+            return False
+            
+    except Exception as e:
+        print(f"Error saat download data tendik: {str(e)}")
+        return False
+
 def scrape_guru(session, subdomain, nama_sekolah):
     """Scraping data guru dan download profil PDF."""
     DATA_GURU_URL = f'https://{subdomain}.sekolahan.id/dataguru'
@@ -562,13 +625,17 @@ def main():
     if session is None:
         return    
 
-    scrape_profil_sekolah(session, subdomain, nama_sekolah)
+    # scrape_profil_sekolah(session, subdomain, nama_sekolah)
 
-    download_alumni(session, subdomain, nama_sekolah)
+    # download_alumni(session, subdomain, nama_sekolah)
 
-    download_guru(session, subdomain, nama_sekolah)
+    # download_guru(session, subdomain, nama_sekolah)
 
-    scrape_guru(session, subdomain, nama_sekolah)
+    # scrape_guru(session, subdomain, nama_sekolah)
+
+    download_tendik(session, subdomain, nama_sekolah)
+
+    download_tendik_profiles_to_pdf(session, subdomain, headers)
 
     # for kelas in kelas_list:
     #     print(f"Mengambil data siswa untuk kelas: {kelas['namakelas']}")
