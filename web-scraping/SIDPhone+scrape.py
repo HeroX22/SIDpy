@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup
 import base64
 import pandas as pd
 from io import StringIO
+from openpyxl.styles import Border, Side, Alignment
+from openpyxl.utils import get_column_letter
 
 #path
 #WKHTMLTOPDF_PATH = r"D:\Elam\Sementara\sid\wkhtmltopdf\bin\wkhtmltopdf.exe"
@@ -287,8 +289,45 @@ def download_alumni(session, subdomain, nama_sekolah):
             output_folder = os.path.join("Data Sekolah", nama_sekolah, "Data Siswa")
             os.makedirs(output_folder, exist_ok=True)
             output_path = os.path.join(output_folder, "alumni.xlsx")  # Ganti ke .xlsx
+
+            # Simpan ke Excel dengan styling
+            with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Alumni')
+                
+                # Ambil worksheet
+                workbook = writer.book
+                worksheet = writer.sheets['Alumni']
+                
+                # Tentukan border
+                thin_border = Border(
+                    left=Side(style='thin'),
+                    right=Side(style='thin'),
+                    top=Side(style='thin'),
+                    bottom=Side(style='thin')
+                )
+                
+                # Terapkan border ke semua cell
+                for row in worksheet.iter_rows():
+                    for cell in row:
+                        cell.border = thin_border
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
+                
+                # Handle kolom NIK dan HP (tambahkan ` di depan)
+                for col in df.columns:
+                    if 'NIK' in col or 'HP' in col:
+                        col_idx = df.columns.get_loc(col) + 1  # Kolom Excel dimulai dari 1
+                        col_letter = get_column_letter(col_idx)
+                        
+                        for cell in worksheet[col_letter]:
+                            if cell.value:  # Jika ada isinya
+                                cell.value = f"`{cell.value}"  # Tambahkan ` di depan
+                
+                # Auto adjust lebar kolom
+                for col in worksheet.columns:
+                    max_length = max(len(str(cell.value)) for cell in col)
+                    adjusted_width = (max_length + 2) * 1.2  # Tambahkan sedikit padding
+                    worksheet.column_dimensions[col[0].column_letter].width = adjusted_width
             
-            df.to_excel(output_path, index=False, engine='openpyxl')  # ← Pakai engine openpyxl
             print(f"\nData alumni berhasil disimpan: {output_path}")
             return True
             
