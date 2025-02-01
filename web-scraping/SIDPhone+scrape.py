@@ -339,6 +339,80 @@ def download_alumni(session, subdomain, nama_sekolah):
         print(f"Error saat download alumni: {str(e)}")
         return False
 
+#download data guru
+def download_guru(session, subdomain, nama_sekolah):
+    """Mendownload data guru dalam format XLSX"""
+    guru_url = f'https://{subdomain}.sekolahan.id/dataguru/cetakguru/'
+    
+    try:
+        response = session.get(guru_url)
+        
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            table = soup.find('table')
+            
+            if not table:
+                print("Tabel guru tidak ditemukan di halaman.")
+                return False
+            
+            # Konversi tabel HTML ke DataFrame
+            html_content = str(table)
+            df = pd.read_html(StringIO(html_content))[0]
+            
+            # Path penyimpanan
+            output_folder = os.path.join("Data Sekolah", nama_sekolah, "Data Guru")
+            os.makedirs(output_folder, exist_ok=True)
+            output_path = os.path.join(output_folder, "Data Guru.xlsx")
+            
+            # Simpan ke Excel dengan styling
+            with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Guru')
+                
+                # Ambil worksheet
+                workbook = writer.book
+                worksheet = writer.sheets['Guru']
+                
+                # Tentukan border
+                thin_border = Border(
+                    left=Side(style='thin'),
+                    right=Side(style='thin'),
+                    top=Side(style='thin'),
+                    bottom=Side(style='thin')
+                )
+                
+                # Terapkan border dan alignment
+                for row in worksheet.iter_rows():
+                    for cell in row:
+                        cell.border = thin_border
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
+                
+                # Handle kolom NIK/HP
+                for col in df.columns:
+                    if any(k in col for k in ['NIK', 'HP', 'Telp', 'No. Telpon']):
+                        col_idx = df.columns.get_loc(col) + 1
+                        col_letter = get_column_letter(col_idx)
+                        
+                        for cell in worksheet[col_letter]:
+                            if cell.value:
+                                cell.value = f"`{cell.value}"
+                
+                # Auto adjust lebar kolom
+                for col in worksheet.columns:
+                    max_length = max(len(str(cell.value)) for cell in col)
+                    adjusted_width = (max_length + 2) * 1.2
+                    worksheet.column_dimensions[col[0].column_letter].width = adjusted_width
+            
+            print(f"\nData guru berhasil disimpan: {output_path}")
+            return True
+            
+        else:
+            print(f"Gagal download guru. Status code: {response.status_code}")
+            return False
+            
+    except Exception as e:
+        print(f"Error saat download guru: {str(e)}")
+        return False
+
 # Fungsi untuk menyimpan data siswa ke dalam file terpisah
 # Modifikasi fungsi simpan_data_siswa (tambahkan bagian untuk download PDF)
 def simpan_data_siswa(nama_sekolah, kelas, siswa_data, id_sekolah, session, subdomain):
@@ -405,6 +479,8 @@ def main():
     scrape_profil_sekolah(session, subdomain, nama_sekolah)
 
     download_alumni(session, subdomain, nama_sekolah)
+
+    download_guru(session, subdomain, nama_sekolah)
 
     # for kelas in kelas_list:
     #     print(f"Mengambil data siswa untuk kelas: {kelas['namakelas']}")
