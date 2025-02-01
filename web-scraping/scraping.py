@@ -73,7 +73,21 @@ def scrape_guru():
             table = soup.find('table', class_='table table-striped table-hover')
             if table:
                 rows = table.find('tbody').find_all('tr')
-                return [row.find_all('td')[2].text.strip() for row in rows if len(row.find_all('td')) > 1]
+                # Mengambil ID dan Nama dari setiap baris
+                guru_data = []
+                for row in rows:
+                    cols = row.find_all('td')
+                    if len(cols) > 1:
+                        # Mengambil ID dari kolom ketiga
+                        id_guru = cols[2].text.strip()
+                        # Nama ada di dalam tag <strong> atau di dalam <td> jika tidak ada <strong>
+                        nama_guru = cols[3].find('strong')
+                        if nama_guru:
+                            nama_guru = nama_guru.text.strip()
+                        else:
+                            nama_guru = cols[3].text.strip()
+                        guru_data.append((id_guru, nama_guru))
+                return guru_data
         print(f"Gagal mengakses halaman: {url}, status code: {response.status_code}")
         return []
 
@@ -85,15 +99,16 @@ def scrape_guru():
 
         print(f"Total halaman: {total_pages}")
 
-        all_ids = []
+        all_guru_data = []
         for page in range(1, total_pages + 1):
             page_url = f"{DATA_GURU_URL}/?halaman={page}"
             print(f"Mengakses halaman: {page_url}")
-            all_ids.extend(scrape_page(page_url))
+            all_guru_data.extend(scrape_page(page_url))
 
-        print("ID Guru yang berhasil di-scrape:")
-        for id_guru in all_ids:
-            print(id_guru)
+        # Menampilkan ID dan Nama guru yang berhasil di-scrape
+        print("ID dan Nama Guru yang berhasil di-scrape:")
+        for id_guru, nama_guru in all_guru_data:
+            print(f"ID: {id_guru}, Nama: {nama_guru}")
     else:
         print(f"Gagal mengakses halaman guru, status code: {first_page_response.status_code}")
 
