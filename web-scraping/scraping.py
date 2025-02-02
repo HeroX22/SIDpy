@@ -63,7 +63,6 @@ def scrape_siswa():
     else:
         print(f"Gagal mengakses halaman siswa, status code: {response.status_code}")
 
-
 def scrape_guru():
     """Scraping data guru."""
     def scrape_page(url):
@@ -112,7 +111,6 @@ def scrape_guru():
     else:
         print(f"Gagal mengakses halaman guru, status code: {first_page_response.status_code}")
 
-
 def scrape_tendik_profiles():
     """Scraping profil tendik."""
     def scrape_profile_urls(url):
@@ -121,7 +119,21 @@ def scrape_tendik_profiles():
             soup = BeautifulSoup(response.text, 'html.parser')
             table = soup.find('table', class_='table table-striped table-hover')
             if table:
-                return [row.find_all('td')[-1].find('a', href=True, string='Cetak Profil')['href'] for row in table.find('tbody').find_all('tr') if row.find_all('td')]
+                # Ambil URL dan Nama tendik
+                tendik_data = []
+                for row in table.find('tbody').find_all('tr'):
+                    cols = row.find_all('td')
+                    if len(cols) > 1:
+                        # Ambil URL Cetak Profil
+                        cetak_profil_url = cols[-1].find('a', href=True, string='Cetak Profil')['href']
+                        # Ambil nama tendik yang ada dalam <strong>
+                        nama_tendik = cols[2].find('strong')
+                        if nama_tendik:
+                            nama_tendik = nama_tendik.text.strip()
+                        else:
+                            nama_tendik = cols[2].text.strip()
+                        tendik_data.append((nama_tendik, cetak_profil_url))
+                return tendik_data
         print(f"Gagal mengakses halaman: {url}, status code: {response.status_code}")
         return []
 
@@ -133,15 +145,16 @@ def scrape_tendik_profiles():
 
         print(f"Total halaman: {total_pages}")
 
-        all_profile_urls = []
+        all_tendik_data = []
         for page in range(1, total_pages + 1):
             page_url = f"{DATA_TENDIK_URL}/?halaman={page}"
             print(f"Mengakses halaman: {page_url}")
-            all_profile_urls.extend(scrape_profile_urls(page_url))
+            all_tendik_data.extend(scrape_profile_urls(page_url))
 
-        print("URL Cetak Profil Tendik yang berhasil di-scrape:")
-        for profile_url in all_profile_urls:
-            print(profile_url)
+        # Menampilkan Nama dan URL Cetak Profil tendik yang berhasil di-scrape
+        print("Nama Tendik dan URL Cetak Profil yang berhasil di-scrape:")
+        for nama_tendik, profil_url in all_tendik_data:
+            print(f"Nama: {nama_tendik}, URL Cetak Profil: {profil_url}")
     else:
         print(f"Gagal mengakses halaman pertama data tendik, status code: {first_page_response.status_code}")
 
