@@ -63,7 +63,8 @@ def cari_sekolah():
 def get_kelas(id_sekolah):
     """Mengambil daftar kelas dari sekolah."""
     kelas_url = f"{API_BASE_URL}/{id_sekolah}/datakelas"
-    return get_json_response(kelas_url)
+    kelas_data = get_json_response(kelas_url)
+    return kelas_data if kelas_data is not None else []  # Kembalikan list kosong jika None
 
 # Fungsi untuk mengambil data siswa dalam kelas
 def get_siswa(id_sekolah, kelas_id):
@@ -696,27 +697,24 @@ def main():
     id_sekolah, nama_sekolah, subdomain = cari_sekolah()
     kelas_list = get_kelas(id_sekolah)
     
+    # Hapus return jika tidak ada kelas
     if not kelas_list:
-        print("Gagal mendapatkan data kelas.")
-        return
-
+        print("Tidak ada data kelas yang ditemukan. Melanjutkan ke data lainnya...")
+    
     # Login ke subdomain
     session = login(subdomain)
     if session is None:
         return    
-
+    
+    # Proses pengambilan data profil sekolah, alumni, guru, dan tendik TETAP BERJALAN
     scrape_profil_sekolah(session, subdomain, nama_sekolah)
-
     download_alumni(session, subdomain, nama_sekolah)
-
     download_guru(session, subdomain, nama_sekolah)
-
     scrape_guru(session, subdomain, nama_sekolah)
-
     download_tendik(session, subdomain, nama_sekolah)
-
     scrape_tendik_profiles(session, subdomain, nama_sekolah)
-
+    
+    # Jika ada kelas, ambil data siswa
     for kelas in kelas_list:
         print(f"Mengambil data siswa untuk kelas: {kelas['namakelas']}")
         siswa_list = get_siswa(id_sekolah, kelas["kelasid"])
