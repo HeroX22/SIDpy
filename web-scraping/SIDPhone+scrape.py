@@ -518,6 +518,11 @@ def scrape_tendik_profiles(session, subdomain, nama_sekolah):
             print(f"Mengakses halaman: {page_url}")
             all_tendik_data.extend(scrape_profile_urls(page_url))
 
+        # Jika tidak ada data tendik, kembalikan False
+        if not all_tendik_data:
+            print("Tidak ada data tendik yang ditemukan.")
+            return False
+
         # Menyimpan profil tendik sebagai PDF
         for nama_tendik, profil_url in all_tendik_data:
             print(f"\nMendownload profil: {nama_tendik}")
@@ -554,8 +559,12 @@ def scrape_tendik_profiles(session, subdomain, nama_sekolah):
                     print(f"Gagal menyimpan PDF untuk {nama_tendik}: {e}")
             else:
                 print(f"Gagal mengakses halaman profil {nama_tendik}, status code: {response.status_code}")
+        
+        # Kembalikan True jika ada data tendik yang ditemukan
+        return True
     else:
         print(f"Gagal mengakses halaman pertama data tendik, status code: {first_page_response.status_code}")
+        return False
 
 def scrape_guru(session, subdomain, nama_sekolah):
     """Scraping data guru dan download profil PDF."""
@@ -583,34 +592,22 @@ def scrape_guru(session, subdomain, nama_sekolah):
 
     def download_profil_guru(id_guru, nama_guru):
         """Download profil guru sebagai PDF dengan mengonversi HTML ke PDF."""
-        # Buat URL lengkap untuk profil guru
         profil_url = f'https://{subdomain}.sekolahan.id/dataguru/cetakprofil/{id_guru}'
-        
-        # Print URL lengkap yang sedang diakses
         print(f"Mengakses URL untuk profil guru: {profil_url}")
         
-        # Menggunakan session yang sudah login untuk ambil HTML
         response = session.get(profil_url)
-
         if response.status_code == 200:
-            # Print HTML yang diterima untuk memverifikasi
-            # print(f"HTML diterima untuk {nama_guru}:\n{response.text[:500]}...")  # Cukup tampilkan 500 karakter pertama
-
-            # Path penyimpanan
             output_folder = os.path.join("Data Sekolah", nama_sekolah, "data guru")
             os.makedirs(output_folder, exist_ok=True)
             output_path = os.path.join(output_folder, f"{nama_guru}.pdf")
 
             try:
-                # Mengonversi HTML ke PDF dengan beberapa parameter tambahan
                 options = {
-                    'no-images': '',  # Matikan gambar agar tidak dimuat
-                    'enable-local-file-access': '',  # Akses file lokal (misalnya resource CSS/JS)
-                    'javascript-delay': '2000',  # Memberi waktu lebih untuk memuat elemen dinamis
-                    'load-error-handling': 'ignore',  # Mengabaikan error yang muncul saat memuat resource
+                    'no-images': '',
+                    'enable-local-file-access': '',
+                    'javascript-delay': '2000',
+                    'load-error-handling': 'ignore',
                 }
-
-                # Mengonversi HTML ke PDF dan menyimpannya dengan konfigurasi wkhtmltopdf
                 pdfkit.from_string(response.text, output_path, configuration=config, options=options)
                 print(f"Profil {nama_guru} berhasil disimpan sebagai PDF: {output_path}")
                 return True
@@ -636,12 +633,21 @@ def scrape_guru(session, subdomain, nama_sekolah):
             print(f"Mengakses halaman: {page_url}")
             all_guru_data.extend(scrape_page(page_url))
 
+        # Jika tidak ada data guru, kembalikan False
+        if not all_guru_data:
+            print("Tidak ada data guru yang ditemukan.")
+            return False
+
         # Download profil guru
         for id_guru, nama_guru in all_guru_data:
             print(f"\nMendownload profil: {nama_guru} (ID: {id_guru})")
             download_profil_guru(id_guru, nama_guru)
+        
+        # Kembalikan True jika ada data guru yang ditemukan
+        return True
     else:
         print(f"Gagal mengakses halaman guru, status code: {first_page_response.status_code}")
+        return False
 
 # Fungsi untuk menyimpan data siswa ke dalam file terpisah
 # Modifikasi fungsi simpan_data_siswa (tambahkan bagian untuk download PDF)
@@ -695,9 +701,8 @@ def simpan_data_siswa(nama_sekolah, kelas, siswa_data, id_sekolah, session, subd
 # Main Program
 def main():
     id_sekolah, nama_sekolah, subdomain = cari_sekolah()
-    kelas_list = get_kelas(id_sekolah)
+    kelas_list = get_kelas(id_sekolah) or []  # Pastikan kelas_list adalah list
     
-    # Hapus return jika tidak ada kelas
     if not kelas_list:
         print("Tidak ada data kelas yang ditemukan. Melanjutkan ke data lainnya...")
     
@@ -706,15 +711,25 @@ def main():
     if session is None:
         return    
     
-    # Proses pengambilan data profil sekolah, alumni, guru, dan tendik TETAP BERJALAN
+    # Proses pengambilan data profil sekolah dan alumni
     scrape_profil_sekolah(session, subdomain, nama_sekolah)
     download_alumni(session, subdomain, nama_sekolah)
-    download_guru(session, subdomain, nama_sekolah)
-    scrape_guru(session, subdomain, nama_sekolah)
-    download_tendik(session, subdomain, nama_sekolah)
-    scrape_tendik_profiles(session, subdomain, nama_sekolah)
-    
-    # Jika ada kelas, ambil data siswa
+
+    # Scrape data guru
+    if scrape_guru(session, subdomain, nama_sekolah):
+        # Jika ada data guru, jalankan download_guru
+        download_guru(session, subdomain, nama_sekolah)
+    else:
+        print("Tidak ada data guru yang ditemukan. Melewati download_guru.")
+
+    # Scrape data tendik
+    if scrape_tendik_profiles(session, subdomain, nama_sekolah):
+        # Jika ada data tendik, jalankan download_tendik
+        download_tendik(session, subdomain, nama_sekolah)
+    else:
+        print("Tidak ada data tendik yang ditemukan. Melewati download_tendik.")
+
+    # Loop data siswa hanya jika kelas_list tidak kosong
     for kelas in kelas_list:
         print(f"Mengambil data siswa untuk kelas: {kelas['namakelas']}")
         siswa_list = get_siswa(id_sekolah, kelas["kelasid"])
