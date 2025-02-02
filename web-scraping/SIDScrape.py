@@ -11,6 +11,7 @@ from openpyxl.utils import get_column_letter
 
 #path
 #WKHTMLTOPDF_PATH = r"D:\Elam\Sementara\sid\wkhtmltopdf\bin\wkhtmltopdf.exe"
+#change this
 WKHTMLTOPDF_PATH = r"D:\sementara\applications\wkhtmltopdf\bin\wkhtmltopdf.exe"
 config = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
 
@@ -797,7 +798,7 @@ def simpan_data_siswa(nama_sekolah, kelas, siswa_data, id_sekolah, session, subd
                 file_name_txt = f"{nama_siswa}.txt"
                 output_file_path_txt = os.path.join(siswa_folder, file_name_txt)
                 
-                print(f"Menyimpan data untuk {nama_siswa}")  # Debug print
+                # print(f"Menyimpan data untuk {nama_siswa}")  # Debug print
                 
                 with open(output_file_path_txt, "w", encoding="utf-8") as file:
                     file.write(f"=== Data Siswa: {nama_siswa} ===\n")
@@ -821,7 +822,7 @@ def simpan_data_siswa(nama_sekolah, kelas, siswa_data, id_sekolah, session, subd
                         if value:  # Hanya tulis jika ada nilai
                             file.write(f"{key}: {value}\n")
                 
-                print(f"Data untuk {nama_siswa} berhasil disimpan dalam {file_name_txt}")
+                # print(f"Data untuk {nama_siswa} berhasil disimpan dalam {file_name_txt}")
                 
                 # Log sukses simpan .txt
                 log_to_md(
@@ -930,11 +931,11 @@ def log_to_md(nama_sekolah, kategori, subkategori=None, message=None, nama_file=
             
     except Exception as e:
         print(f"Error saat menulis log: {str(e)}")
-        
+
 # Main Program
 def main():
     # Baca daftar nama sekolah dari file
-    daftar_nama_sekolah = baca_daftar_sekolah("test.txt")
+    daftar_nama_sekolah = baca_daftar_sekolah("valid-nama-sekolah.txt")
     
     for nama_sekolah in daftar_nama_sekolah:
         print(f"Mencari data untuk sekolah: {nama_sekolah}")
