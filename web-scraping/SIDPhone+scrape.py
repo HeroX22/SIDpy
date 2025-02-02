@@ -19,6 +19,12 @@ API_BASE_URL = "https://demo.sekolahan.id/api"
 BEARER_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzbWstY2FrcmEtbnVzYW50YXJhLnNla29sYWhhbi5pZCIsImF1ZCI6IjEwLjEzMC40Ni41OCIsImlhdCI6MTcwNDYyMDU1NSwibmJmIjoxNzA0NjIwNTY1LCJkYXRhIjp7ImlkIjpudWxsfX0._9Geu5biEBUJ6jf89FtuINcP1rDcPHZ0t9vOAQN1hZk"
 HEADERS = {"Authorization": f"Bearer {BEARER_TOKEN}"}
 
+# Fungsi untuk membaca daftar nama sekolah dari file
+def baca_daftar_sekolah(file_path):
+    """Membaca daftar nama sekolah dari file dan mengembalikan list."""
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return [line.strip() for line in file if line.strip()]
+
 # Fungsi untuk mendapatkan JSON response dari API
 def get_json_response(url, method="GET", data=None):
     """Mengambil data JSON dari API dengan metode GET atau POST."""
@@ -33,31 +39,24 @@ def get_json_response(url, method="GET", data=None):
     return None
 
 # Fungsi untuk mencari sekolah
-def cari_sekolah():
-    """Mencari sekolah berdasarkan nama dan mengembalikan ID sekolah dan subdomain."""
-    while True:
-        nama_sekolah = input("Masukkan nama sekolah: ")
+def cari_sekolah(daftar_nama_sekolah):
+    """Mencari sekolah berdasarkan daftar nama dan mengembalikan ID sekolah dan subdomain."""
+    for nama_sekolah in daftar_nama_sekolah:
         sekolah_url = f"{API_BASE_URL}/sekolahdata?namasekolah={nama_sekolah}"
         sekolah_list = get_json_response(sekolah_url)
 
         if sekolah_list:
-            for index, sekolah in enumerate(sekolah_list, start=1):
-                # TAMPILKAN NAMA SEKOLAH TANPA KOMA (jika ada)
-                cleaned_nama = sekolah['nama'].split(',')[0].strip()
-                print(f"{index}. {cleaned_nama}")
-            try:
-                pilihan = int(input("Pilih sekolah (nomor): "))
-                id_sekolah = sekolah_list[pilihan - 1]["id"]
-                nama_sekolah = sekolah_list[pilihan - 1]["nama"]
-                original_nama = sekolah_list[pilihan - 1]["nama"]
-                sanitized_nama = original_nama.replace(',', '').strip()  # Hapus koma
-                identifier = sekolah_list[pilihan - 1]["identifier"]
-                subdomain = base64.b64decode(identifier).decode('utf-8')  # Decode base64 untuk mendapatkan subdomain
-                return id_sekolah, sanitized_nama, subdomain
-            except (ValueError, IndexError):
-                print("Pilihan tidak valid. Coba lagi.")
-        else:
-            print("Sekolah tidak ditemukan.")
+            for sekolah in sekolah_list:
+                if sekolah['nama'].strip() == nama_sekolah:
+                    id_sekolah = sekolah["id"]
+                    nama_sekolah = sekolah["nama"]
+                    original_nama = sekolah["nama"]
+                    sanitized_nama = original_nama.replace(',', '').strip()  # Hapus koma
+                    identifier = sekolah["identifier"]
+                    subdomain = base64.b64decode(identifier).decode('utf-8')  # Decode base64 untuk mendapatkan subdomain
+                    return id_sekolah, sanitized_nama, subdomain
+    print("Tidak ada sekolah yang cocok ditemukan.")
+    return None, None, None
 
 # Fungsi untuk mengambil data kelas
 def get_kelas(id_sekolah):
@@ -315,13 +314,13 @@ def download_alumni(session, subdomain, nama_sekolah):
                 
                 # Handle kolom NIK dan HP (tambahkan ` di depan)
                 for col in df.columns:
-                    if 'NIK' in col or 'HP' in col:
+                    if 'NIK' in col or 'HP' in col or 'NUPTK' in col or 'NIP' in col:
                         col_idx = df.columns.get_loc(col) + 1  # Kolom Excel dimulai dari 1
                         col_letter = get_column_letter(col_idx)
                         
                         for cell in worksheet[col_letter]:
                             if cell.value:  # Jika ada isinya
-                                cell.value = f"`{cell.value}"  # Tambahkan ` di depan
+                                cell.value = f"'{cell.value}"  # Tambahkan ` di depan
                 
                 # Auto adjust lebar kolom
                 for col in worksheet.columns:
@@ -537,7 +536,7 @@ def scrape_tendik_profiles(session, subdomain, nama_sekolah):
                 html_content = response.text
 
                 # Debug: Print 500 karakter pertama dari HTML profil
-                print(f"HTML Profil {nama_tendik}:\n{html_content[:500]}\n")
+                # print(f"HTML Profil {nama_tendik}:\n{html_content[:500]}\n")
 
                 # Path penyimpanan
                 output_folder = os.path.join("Data Sekolah", nama_sekolah, "data tendik")
@@ -700,45 +699,55 @@ def simpan_data_siswa(nama_sekolah, kelas, siswa_data, id_sekolah, session, subd
 
 # Main Program
 def main():
-    id_sekolah, nama_sekolah, subdomain = cari_sekolah()
-    kelas_list = get_kelas(id_sekolah) or []  # Pastikan kelas_list adalah list
+    # Baca daftar nama sekolah dari file
+    daftar_nama_sekolah = baca_daftar_sekolah("test.txt")
     
-    if not kelas_list:
-        print("Tidak ada data kelas yang ditemukan. Melanjutkan ke data lainnya...")
-    
-    # Login ke subdomain
-    session = login(subdomain)
-    if session is None:
-        return    
-    
-    # Proses pengambilan data profil sekolah dan alumni
-    scrape_profil_sekolah(session, subdomain, nama_sekolah)
-    download_alumni(session, subdomain, nama_sekolah)
-
-    # Scrape data guru
-    if scrape_guru(session, subdomain, nama_sekolah):
-        # Jika ada data guru, jalankan download_guru
-        download_guru(session, subdomain, nama_sekolah)
-    else:
-        print("Tidak ada data guru yang ditemukan. Melewati download_guru.")
-
-    # Scrape data tendik
-    if scrape_tendik_profiles(session, subdomain, nama_sekolah):
-        # Jika ada data tendik, jalankan download_tendik
-        download_tendik(session, subdomain, nama_sekolah)
-    else:
-        print("Tidak ada data tendik yang ditemukan. Melewati download_tendik.")
-
-    # Loop data siswa hanya jika kelas_list tidak kosong
-    for kelas in kelas_list:
-        print(f"Mengambil data siswa untuk kelas: {kelas['namakelas']}")
-        siswa_list = get_siswa(id_sekolah, kelas["kelasid"])
+    for nama_sekolah in daftar_nama_sekolah:
+        print(f"Mencari data untuk sekolah: {nama_sekolah}")
+        id_sekolah, nama_sekolah, subdomain = cari_sekolah([nama_sekolah])
         
-        if siswa_list:
-            simpan_data_siswa(nama_sekolah, kelas['namakelas'], siswa_list, id_sekolah, session, subdomain)
-            print(f"Data siswa kelas {kelas['namakelas']} berhasil disimpan.")
+        if id_sekolah is None:
+            print(f"Tidak dapat menemukan data untuk sekolah: {nama_sekolah}")
+            continue
+        
+        kelas_list = get_kelas(id_sekolah) or []  # Pastikan kelas_list adalah list
+        
+        if not kelas_list:
+            print("Tidak ada data kelas yang ditemukan. Melanjutkan ke data lainnya...")
+        
+        # Login ke subdomain
+        session = login(subdomain)
+        if session is None:
+            continue
+        
+        # Proses pengambilan data profil sekolah dan alumni
+        scrape_profil_sekolah(session, subdomain, nama_sekolah)
+        download_alumni(session, subdomain, nama_sekolah)
+
+        # Scrape data guru
+        if scrape_guru(session, subdomain, nama_sekolah):
+            # Jika ada data guru, jalankan download_guru
+            download_guru(session, subdomain, nama_sekolah)
         else:
-            print(f"Tidak ada data siswa di kelas {kelas['namakelas']}")
+            print("Tidak ada data guru yang ditemukan. Melewati download_guru.")
+
+        # Scrape data tendik
+        if scrape_tendik_profiles(session, subdomain, nama_sekolah):
+            # Jika ada data tendik, jalankan download_tendik
+            download_tendik(session, subdomain, nama_sekolah)
+        else:
+            print("Tidak ada data tendik yang ditemukan. Melewati download_tendik.")
+
+        # Loop data siswa hanya jika kelas_list tidak kosong
+        for kelas in kelas_list:
+            print(f"Mengambil data siswa untuk kelas: {kelas['namakelas']}")
+            siswa_list = get_siswa(id_sekolah, kelas["kelasid"])
+            
+            if siswa_list:
+                simpan_data_siswa(nama_sekolah, kelas['namakelas'], siswa_list, id_sekolah, session, subdomain)
+                print(f"Data siswa kelas {kelas['namakelas']} berhasil disimpan.")
+            else:
+                print(f"Tidak ada data siswa di kelas {kelas['namakelas']}")
 
 if __name__ == "__main__":
     main()
