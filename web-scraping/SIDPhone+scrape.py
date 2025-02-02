@@ -476,6 +476,86 @@ def download_tendik(session, subdomain, nama_sekolah):
         print(f"Error saat download data tendik: {str(e)}")
         return False
 
+def scrape_tendik_profiles(session, subdomain, nama_sekolah):
+    """Scraping profil tendik dan mengunduh PDF dari halaman print profil tendik."""
+    DATA_TENDIK_URL = f'https://{subdomain}.sekolahan.id/datatendik'
+
+    def scrape_profile_urls(url):
+        """Mengambil daftar nama tendik dan URL cetak profil dari halaman tertentu."""
+        response = session.get(url)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            table = soup.find('table', class_='table table-striped table-hover')
+            tendik_data = []
+            
+            if table:
+                for row in table.find('tbody').find_all('tr'):
+                    cols = row.find_all('td')
+                    if len(cols) > 1:
+                        nama_tendik_tag = cols[2].find('strong')
+                        if nama_tendik_tag:
+                            nama_tendik = nama_tendik_tag.text.strip()
+                            cetak_link = cols[-1].find('a', href=True, string='Cetak Profil')
+                            if cetak_link:
+                                tendik_data.append((nama_tendik, cetak_link['href']))
+                return tendik_data
+        print(f"Gagal mengakses halaman: {url}, status code: {response.status_code}")
+        return []
+
+    # Cari jumlah halaman jika ada paginasi
+    first_page_response = session.get(DATA_TENDIK_URL)
+    if first_page_response.status_code == 200:
+        soup = BeautifulSoup(first_page_response.text, 'html.parser')
+        pagination = soup.find('ul', class_='pagination')
+        total_pages = max([int(a.text) for a in pagination.find_all('a') if a.text.isdigit()], default=1)
+
+        print(f"Total halaman data tendik: {total_pages}")
+
+        all_tendik_data = []
+        for page in range(1, total_pages + 1):
+            page_url = f"{DATA_TENDIK_URL}/?halaman={page}"
+            print(f"Mengakses halaman: {page_url}")
+            all_tendik_data.extend(scrape_profile_urls(page_url))
+
+        # Menyimpan profil tendik sebagai PDF
+        for nama_tendik, profil_url in all_tendik_data:
+            print(f"\nMendownload profil: {nama_tendik}")
+
+            # Lengkapi URL jika masih relatif
+            if not profil_url.startswith("http"):
+                profil_url = f"https://{subdomain}.sekolahan.id{profil_url}"
+
+            # Ambil HTML dengan session
+            response = session.get(profil_url)
+            if response.status_code == 200:
+                html_content = response.text
+
+                # Debug: Print 500 karakter pertama dari HTML profil
+                print(f"HTML Profil {nama_tendik}:\n{html_content[:500]}\n")
+
+                # Path penyimpanan
+                output_folder = os.path.join("Data Sekolah", nama_sekolah, "data tendik")
+                os.makedirs(output_folder, exist_ok=True)
+                output_path = os.path.join(output_folder, f"{nama_tendik}.pdf")
+
+                # Konversi HTML ke PDF menggunakan pdfkit.from_string()
+                try:
+                    options = {
+                        'javascript-delay': '3000',  # Beri waktu agar elemen dinamis termuat
+                        'no-stop-slow-scripts': '',
+                        'enable-local-file-access': '',
+                        'quiet': '',
+                    }
+
+                    pdfkit.from_string(html_content, output_path, configuration=config, options=options)
+                    print(f"Profil {nama_tendik} berhasil disimpan di {output_path}")
+                except Exception as e:
+                    print(f"Gagal menyimpan PDF untuk {nama_tendik}: {e}")
+            else:
+                print(f"Gagal mengakses halaman profil {nama_tendik}, status code: {response.status_code}")
+    else:
+        print(f"Gagal mengakses halaman pertama data tendik, status code: {first_page_response.status_code}")
+
 def scrape_guru(session, subdomain, nama_sekolah):
     """Scraping data guru dan download profil PDF."""
     DATA_GURU_URL = f'https://{subdomain}.sekolahan.id/dataguru'
@@ -614,38 +694,38 @@ def simpan_data_siswa(nama_sekolah, kelas, siswa_data, id_sekolah, session, subd
 # Main Program
 def main():
     id_sekolah, nama_sekolah, subdomain = cari_sekolah()
-    # kelas_list = get_kelas(id_sekolah)
+    kelas_list = get_kelas(id_sekolah)
     
-    # if not kelas_list:
-    #     print("Gagal mendapatkan data kelas.")
-    #     return
+    if not kelas_list:
+        print("Gagal mendapatkan data kelas.")
+        return
 
     # Login ke subdomain
     session = login(subdomain)
     if session is None:
         return    
 
-    # scrape_profil_sekolah(session, subdomain, nama_sekolah)
+    scrape_profil_sekolah(session, subdomain, nama_sekolah)
 
-    # download_alumni(session, subdomain, nama_sekolah)
+    download_alumni(session, subdomain, nama_sekolah)
 
-    # download_guru(session, subdomain, nama_sekolah)
+    download_guru(session, subdomain, nama_sekolah)
 
-    # scrape_guru(session, subdomain, nama_sekolah)
+    scrape_guru(session, subdomain, nama_sekolah)
 
     download_tendik(session, subdomain, nama_sekolah)
 
-    download_tendik_profiles_to_pdf(session, subdomain, headers)
+    scrape_tendik_profiles(session, subdomain, nama_sekolah)
 
-    # for kelas in kelas_list:
-    #     print(f"Mengambil data siswa untuk kelas: {kelas['namakelas']}")
-    #     siswa_list = get_siswa(id_sekolah, kelas["kelasid"])
+    for kelas in kelas_list:
+        print(f"Mengambil data siswa untuk kelas: {kelas['namakelas']}")
+        siswa_list = get_siswa(id_sekolah, kelas["kelasid"])
         
-    #     if siswa_list:
-    #         simpan_data_siswa(nama_sekolah, kelas['namakelas'], siswa_list, id_sekolah, session, subdomain)
-    #         print(f"Data siswa kelas {kelas['namakelas']} berhasil disimpan.")
-    #     else:
-    #         print(f"Tidak ada data siswa di kelas {kelas['namakelas']}")
+        if siswa_list:
+            simpan_data_siswa(nama_sekolah, kelas['namakelas'], siswa_list, id_sekolah, session, subdomain)
+            print(f"Data siswa kelas {kelas['namakelas']} berhasil disimpan.")
+        else:
+            print(f"Tidak ada data siswa di kelas {kelas['namakelas']}")
 
 if __name__ == "__main__":
     main()
