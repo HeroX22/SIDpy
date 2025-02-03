@@ -935,7 +935,7 @@ def log_to_md(nama_sekolah, kategori, subkategori=None, message=None, nama_file=
 # Main Program
 def main():
     # Baca daftar nama sekolah dari file
-    daftar_nama_sekolah = baca_daftar_sekolah("valid-nama-sekolah.txt")
+    daftar_nama_sekolah = baca_daftar_sekolah("test.txt")
     
     for nama_sekolah in daftar_nama_sekolah:
         print(f"Mencari data untuk sekolah: {nama_sekolah}")
