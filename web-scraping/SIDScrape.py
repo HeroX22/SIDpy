@@ -10,8 +10,9 @@ from openpyxl.styles import Border, Side, Alignment
 from openpyxl.utils import get_column_letter
 
 #path
-#WKHTMLTOPDF_PATH = r"D:\Elam\Sementara\sid\wkhtmltopdf\bin\wkhtmltopdf.exe" #change this
-WKHTMLTOPDF_PATH = r"D:\sementara\applications\wkhtmltopdf\bin\wkhtmltopdf.exe" #change this
+#WKHTMLTOPDF_PATH = r"D:\Elam\Sementara\sid\wkhtmltopdf\bin\wkhtmltopdf.exe" # untuk laptop utama
+#WKHTMLTOPDF_PATH = r"D:\sementara\applications\wkhtmltopdf\bin\wkhtmltopdf.exe" #laptop kedua
+WKHTMLTOPDF_PATH = r"/usr/local/bin/wkhtmltopdf " #linux
 config = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
 
 # Konfigurasi API
