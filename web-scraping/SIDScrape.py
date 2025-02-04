@@ -788,6 +788,8 @@ def simpan_data_siswa(nama_sekolah, kelas, siswa_data, id_sekolah, session, subd
             try:
                 # Ambil profil siswa
                 profil = get_profil_siswa(id_sekolah, siswa['idsiswa'])
+                scraped_data = scrape_siswa(session, subdomain, siswa['idsiswa'])
+                combined_data = {**profil, **scraped_data}
                 nama_siswa = clean_filename(profil.get('nama', 'Nama Tidak Ditemukan'))
                 
                 # Buat folder untuk siswa
@@ -814,13 +816,13 @@ def simpan_data_siswa(nama_sekolah, kelas, siswa_data, id_sekolah, session, subd
                     )
                     file.write(f"Password: {password}\n")
                     
-                    # Scrape data tambahan dari halaman edit siswa
-                    scraped_data = scrape_siswa(session, subdomain, siswa['idsiswa'])
-                    
-                    # Gabungkan data profil dan data yang di-scrape
-                    for key, value in {**profil, **scraped_data}.items():
-                        if value:  # Hanya tulis jika ada nilai
-                            file.write(f"{key}: {value}\n")
+                    # Tulis seluruh data yang ada di combined_data
+                    file.write("=== Seluruh Data Siswa ===\n")
+                    for key, value in combined_data.items():
+                        # Jika value kosong, tuliskan sebagai 'Tidak Ditemukan'
+                        if value is None or value == "":
+                            value = ""
+                        file.write(f"{key.capitalize().replace('_', ' ')}: {value}\n")
                 
                 # print(f"Data untuk {nama_siswa} berhasil disimpan dalam {file_name_txt}")
                 
