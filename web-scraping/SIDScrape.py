@@ -196,6 +196,13 @@ def scrape_profil_sekolah(session, subdomain, sanitized_nama_sekolah):
         kecamatan = get_input_value(soup, 'kecamatan_sekolah')
         kabupaten_kota = get_input_value(soup, 'kabupatenkota_sekolah')
         provinsi = get_input_value(soup, 'provinsi_sekolah')
+        # Ambil tahun ajaran aktif
+        select_tahun_ajaran = soup.find('select', {'name': 'smtid'})
+        tahun_ajaran = "Tidak ditemukan"
+        if select_tahun_ajaran:
+            option_terpilih = select_tahun_ajaran.find('option', selected=True)
+            if option_terpilih:
+                tahun_ajaran = option_terpilih.text.strip()
         latitude = get_input_value(soup, 'latitude')
         longitude = get_input_value(soup, 'longitude')
 
@@ -239,6 +246,7 @@ def scrape_profil_sekolah(session, subdomain, sanitized_nama_sekolah):
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write("=== PROFIL SEKOLAH ===\n")
             f.write(f"Nama Sekolah     : {original_nama_sekolah}\n")
+            f.write(f"Tahun Ajaran     : {tahun_ajaran}\n")
             f.write(f"NSS              : {nss}\n")
             f.write(f"NPSN             : {npsn}\n")
             f.write(f"Alamat           : {alamat}\n")
